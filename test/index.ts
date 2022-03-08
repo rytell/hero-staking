@@ -55,6 +55,13 @@ describe("Staking Hero", function () {
       .be.reverted;
   });
 
+  it("After staking, the contract should be the owner of the hero", async function () {
+    const mintedHeros = await heros.walletOfOwner(stakerAccount.address);
+    await stakeHero.connect(stakerAccount).stake(mintedHeros[0]);
+    const stakedHeros = await heros.walletOfOwner(stakeHero.address);
+    expect(stakedHeros[0].toString()).to.equal(mintedHeros[0].toString());
+  });
+
   it("A user should not be able to stake a hero they don't own", async function () {
     const mintedHeros = await heros.walletOfOwner(stakerAccount.address);
     expect(mintedHeros.length).to.be.greaterThan(0);
@@ -63,12 +70,40 @@ describe("Staking Hero", function () {
     ).to.be.revertedWith("Rytell: you don't own this hero");
   });
 
-  it("After staking, the contract should be the owner of the hero", async function () {
+  it("A user should be able to unstake and recover their hero back", async function () {
+    // stake
     const mintedHeros = await heros.walletOfOwner(stakerAccount.address);
     await stakeHero.connect(stakerAccount).stake(mintedHeros[0]);
+
+    // verify ownership
     const stakedHeros = await heros.walletOfOwner(stakeHero.address);
     expect(stakedHeros[0].toString()).to.equal(mintedHeros[0].toString());
+
+    // unstake
+    await stakeHero.connect(stakerAccount).unstake(mintedHeros[0]);
+
+    // verify ownership
+    const currentStakedHeros = await heros.walletOfOwner(stakeHero.address);
+    expect(currentStakedHeros.length).to.equal(0);
+
+    // verify last unstake date different than 0
+    const stakerAccountHerosInfo = await stakeHero
+      .connect(stakerAccount)
+      .getStakedHeros();
+    expect(stakerAccountHerosInfo[0].lastUnstaked.toString()).not.to.equal("0");
   });
 
-  // TODO should also test events
+  it("Should revert if user intends to unstake something unstaked", async function () {
+    // stake
+    const mintedHeros = await heros.walletOfOwner(stakerAccount.address);
+    await stakeHero.connect(stakerAccount).stake(mintedHeros[0]);
+
+    // unstake
+    await stakeHero.connect(stakerAccount).unstake(mintedHeros[0]);
+
+    // unstake again
+    await expect(
+      stakeHero.connect(stakerAccount).unstake(mintedHeros[0])
+    ).to.be.revertedWith("Rytell: this hero is not currently staked");
+  });
 });
