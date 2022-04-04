@@ -23,9 +23,10 @@ contract StakeHero is IERC721Receiver {
     uint256 lastStaked;
     uint256 lastUnstaked;
     uint256 heroId;
+    address owner;
   }
 
-  mapping(address => HeroStatus[]) stakedHeros;
+  mapping(address => HeroStatus[]) public stakedHeros;
 
   event StakedHero(address who, uint256 heroNumber, uint256 when);
   event ReceivedERC721(
@@ -79,7 +80,9 @@ contract StakeHero is IERC721Receiver {
   function senderStakedHero(uint256 heroNumber) public view returns (bool) {
     HeroStatus[] storage accountHeros = stakedHeros[msg.sender];
     for (uint256 index = 0; index < accountHeros.length; index++) {
-      if (accountHeros[index].heroId == heroNumber && accountHeros[index].staked) {
+      if (
+        accountHeros[index].heroId == heroNumber && accountHeros[index].staked
+      ) {
         return true;
       }
     }
@@ -87,7 +90,7 @@ contract StakeHero is IERC721Receiver {
     return false;
   }
 
-  function acquireOwnership(uint256 heroNumber) public {
+  function acquireOwnership(uint256 heroNumber) private {
     IRytellHero(rytellHerosContract).safeTransferFrom(
       msg.sender,
       address(this),
@@ -110,6 +113,7 @@ contract StakeHero is IERC721Receiver {
           );
           herosOfAccount[index].lastStaked = block.timestamp;
           herosOfAccount[index].staked = true;
+          herosOfAccount[index].owner = msg.sender;
           foundHero = true;
           emit StakedHero(msg.sender, heroNumber, time);
           return;
@@ -122,7 +126,8 @@ contract StakeHero is IERC721Receiver {
             staked: true,
             lastStaked: time,
             lastUnstaked: 0,
-            heroId: heroNumber
+            heroId: heroNumber,
+            owner: msg.sender
           })
         );
         emit StakedHero(msg.sender, heroNumber, time);
@@ -133,7 +138,8 @@ contract StakeHero is IERC721Receiver {
           staked: true,
           lastStaked: time,
           lastUnstaked: 0,
-          heroId: heroNumber
+          heroId: heroNumber,
+          owner: msg.sender
         })
       );
       emit StakedHero(msg.sender, heroNumber, time);
@@ -162,8 +168,12 @@ contract StakeHero is IERC721Receiver {
     }
   }
 
-  function getStakedHeros() public view returns (HeroStatus[] memory heroInfo) {
-    HeroStatus[] storage herosInfo = stakedHeros[msg.sender];
+  function getStakedHeros(address owner)
+    public
+    view
+    returns (HeroStatus[] memory heroInfo)
+  {
+    HeroStatus[] storage herosInfo = stakedHeros[owner];
     return herosInfo;
   }
 }

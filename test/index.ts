@@ -87,9 +87,9 @@ describe("Staking Hero", function () {
     expect(currentStakedHeros.length).to.equal(0);
 
     // verify last unstake date different than 0
-    const stakerAccountHerosInfo = await stakeHero
-      .connect(stakerAccount)
-      .getStakedHeros();
+    const stakerAccountHerosInfo = await stakeHero.getStakedHeros(
+      stakerAccount.address
+    );
     expect(stakerAccountHerosInfo[0].lastUnstaked.toString()).not.to.equal("0");
   });
 
